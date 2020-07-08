@@ -23,7 +23,7 @@ public class WiseMan implements Runnable {
         this.isAtTheTable = true;
         setForks();
         this.semaphore = table.getSemaphore();
-        this.thread    = new Thread(this,"Wise man №" + number);
+        this.thread    = new Thread(this, "Wise man №" + number);
         this.thread.start();
     }
 
@@ -38,9 +38,10 @@ public class WiseMan implements Runnable {
 
     @Override
     public void run() {
-        System.out.println("Wise man №" + this.number + " came and seat to the table.");
+        System.out.println("Wise man №" + this.number + " came at the table.");
         while (isAtTheTable) {
-            if (this.eatingCount == this.table.getEatingRound()&&this.semaphore.availablePermits()>0) {
+            if (this.eatingCount == this.table.getEatingRound() &&
+                    this.semaphore.availablePermits() > 0) {
                 this.mayEat = true;
                 tryToEat();
             } else {
@@ -66,14 +67,12 @@ public class WiseMan implements Runnable {
         }
     }
 
-    private void getForks() {
-        leftFork.isInUse(true);
-        rightFork.isInUse(true);
-    }
-
-    private void putForks() {
-        leftFork.isInUse(false);
-        rightFork.isInUse(false);
+    private void tryToAcquireSemaphore() {
+        try {
+            semaphore.acquire();
+        } catch (InterruptedException e) {
+            System.err.println("Thread was interrupted: " + e.getMessage());
+        }
     }
 
     private void eat() {
@@ -98,12 +97,14 @@ public class WiseMan implements Runnable {
         }
     }
 
-    private void tryToAcquireSemaphore() {
-        try {
-            semaphore.acquire();
-        } catch (InterruptedException e) {
-            System.err.println("Thread was interrupted: " + e.getMessage());
-        }
+    private void getForks() {
+        leftFork.isInUse(true);
+        rightFork.isInUse(true);
+    }
+
+    private void putForks() {
+        leftFork.isInUse(false);
+        rightFork.isInUse(false);
     }
 
     public void goOut() {
