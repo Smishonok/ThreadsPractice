@@ -48,6 +48,7 @@ public class Bus implements Runnable {
             System.out.println(
                     "The bus has arrived at the bus stop №" + busStop.getBusStopNumber());
 
+            semaphore.release(phaser.getRegisteredParties()-1);
             phaser.arriveAndAwaitAdvance();
             System.out.println("The bus lived the bus stop");
         }

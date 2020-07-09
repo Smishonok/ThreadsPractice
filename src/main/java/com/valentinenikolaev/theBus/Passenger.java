@@ -33,13 +33,28 @@ public class Passenger implements Runnable {
         phaser.arriveAndAwaitAdvance();
 
         while (departure > phaser.getPhase()) {
+            try {
+                bus.getSemaphore().acquire();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
             System.out.println(name + " waiting for the bus.");
             phaser.arriveAndAwaitAdvance();
         }
 
+        try {
+            bus.getSemaphore().acquire();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
         System.out.println(name + " comes into the bus.");
         phaser.arriveAndAwaitAdvance();
 
+        try {
+            bus.getSemaphore().acquire();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
         System.out.println(
                 this.name + " arrived to the destination and went out the bus.");
         phaser.arriveAndDeregister();
