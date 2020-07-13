@@ -18,7 +18,7 @@ public class Main {
         String typesGroup2[] = {"Tritanium", "Pyerite", "Nocxium"};
 
         System.out.println("Crete executor, which will use 2 threads.");
-        ExecutorService executor = Executors.newFixedThreadPool(2);
+        ExecutorService executor = Executors.newFixedThreadPool(4);
 
         System.out.println("Get the first entities list wrapped in the Future.");
         Future<List<Entity>> entityList1 = executor.submit(
@@ -36,28 +36,43 @@ public class Main {
         entities.forEach(System.out::println);
 
 
-        List<CompletableFuture<List<Entity>>> completableFutures = Stream.of(typesGroup1,
-                                                                             typesGroup2)
-                                                                         .map(Main::getFutureList)
-                                                                         .collect(
-                                                                                 Collectors.toList());
+        List<CompletableFuture<List<Entity>>> completableFutures;
+        completableFutures = Stream.of(typesGroup1, typesGroup2)
+                                   .map(gr->Main.getFutureList(gr,executor))
+                                   .collect(Collectors.toList());
 
         CompletableFuture<Void> completableFuture = CompletableFuture.allOf(
                 completableFutures.toArray(CompletableFuture[]::new));
 
-        List<Entity> entityList = completableFuture.thenApply(v->{
-            List<Entity> completedFutureList = completableFutures.stream()
-                                                                 .map(CompletableFuture::join)
-                                                                 .flatMap(list->list.stream())
-                    .collect(Collectors.toList());
-            return completedFutureList;
+        CompletableFuture<List<Entity>> completedFuture = completableFuture.thenApply(aVoid->{
+            List<Entity> entityList = completableFutures.stream()
+                                                        .map(CompletableFuture::join)
+                                                        .flatMap(e->e.stream())
+                                                        .collect(Collectors.toList());
+            return entityList;
         });
+
+        completedFuture.get().forEach(System.out::println);
+
+
+        CompletableFuture<List<Entity>> firstEntityList = CompletableFuture.supplyAsync(
+                new EntityLoader(List.of(typesGroup1)));
+        CompletableFuture<List<Entity>> secondEntityList = CompletableFuture.supplyAsync(
+                new EntityLoader(List.of(typesGroup2)));
+        CompletableFuture<List<Entity>> totalEntityList = firstEntityList.thenCombine(
+                secondEntityList, (f1, f2)->{
+                    f1.addAll(f2);
+                    return f1;
+                });
+
+        totalEntityList.get().forEach(System.out::println);
 
         executor.shutdown();
     }
 
-    private static CompletableFuture<List<Entity>> getFutureList(String[] entitiesNames) {
-        return CompletableFuture.supplyAsync(new EntityLoader(Arrays.asList(entitiesNames)));
+    private static CompletableFuture<List<Entity>> getFutureList(String[] entitiesNames,
+                                                                 Executor executor) {
+        return CompletableFuture.supplyAsync(new EntityLoader(Arrays.asList(entitiesNames)),executor);
     }
 
 
