@@ -36,21 +36,35 @@ public class Main {
         entities.forEach(System.out::println);
 
 
+        //CompletableFuture combining two tasks (options A).
         List<CompletableFuture<List<Entity>>> completableFutures;
         completableFutures = Stream.of(typesGroup1, typesGroup2)
-                                   .map(gr->Main.getFutureList(gr,executor))
+                                   .map(gr->Main.getFutureList(gr, executor))
                                    .collect(Collectors.toList());
+        //        CompletableFuture<Void> completableFuture = CompletableFuture.allOf(
+        //                completableFutures.toArray(CompletableFuture[]::new));
 
+        //CompletableFuture combining two tasks (options B).
+        CompletableFuture<List<Entity>> completableArray[] = new CompletableFuture[0];
+        Stream.of(typesGroup1, typesGroup2)
+              .map(gr->Main.getFutureList(gr, executor))
+              .collect(Collectors.toList())
+              .toArray(completableArray);
+        //CompletableFuture<Void> completableFuture = CompletableFuture.allOf(completableArray);
+
+        //CompletableFuture combining two tasks (options C).
         CompletableFuture<Void> completableFuture = CompletableFuture.allOf(
-                completableFutures.toArray(CompletableFuture[]::new));
+                getFutureList(typesGroup1, executor), getFutureList(typesGroup2, executor));
+
 
         CompletableFuture<List<Entity>> completedFuture = completableFuture.thenApply(aVoid->{
             List<Entity> entityList = completableFutures.stream()
                                                         .map(CompletableFuture::join)
-                                                        .flatMap(e->e.stream())
+                                                        .flatMap(List::stream)
                                                         .collect(Collectors.toList());
             return entityList;
         });
+
 
         completedFuture.get().forEach(System.out::println);
 
@@ -72,7 +86,8 @@ public class Main {
 
     private static CompletableFuture<List<Entity>> getFutureList(String[] entitiesNames,
                                                                  Executor executor) {
-        return CompletableFuture.supplyAsync(new EntityLoader(Arrays.asList(entitiesNames)),executor);
+        return CompletableFuture.supplyAsync(new EntityLoader(Arrays.asList(entitiesNames)),
+                                             executor);
     }
 
 
